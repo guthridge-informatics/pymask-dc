@@ -1,22 +1,30 @@
 [tool.poetry]
-name = {{MODULE_NAME}}
-version = {{VERSION}}
-description = {{DESCRIPTION}}
-authors = {{AUTHOR}}
-license = {{LICENSE}}
+name = "pyalra"
+version = "1.0.0"
+description = "Translation of the ALRA R package"
+authors = ["Miles Smith <miles-smith@omrf.org>"]
+license = "LGPL3"
 readme = "README.md"
 include = [
     { path = "tests" }
 ]
+homepage = "https://github.com/milescsmith/pyalra"
+repository = "https://github.com/milescsmith/pyalra"
 
-[project.urls]
-homepage = "https://github.com/{{USER}}/{{MODULE}}"
-repository = "https://github.com/{{USER}}/{{MODULE}}"
-changelog = "https://github.com/{{USER}}/{{MODULE}}/releases"
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+nox = "^2023.4.22"
+nox-poetry = "^1.0.3"
 
-[tool.poetry.scripts]
-{{EXECUTABLE}} = '{{MODULE}}.main:app'
+# [tool.poetry.scripts]
+# {{EXECUTABLE}} = '{{MODULE}}.main:app'
+sourcery = "^1.15.0"
 
+[tool.poetry.dependencies]
+python = ">=3.10,<4"
+scikit-learn = "^1.4.0"
+numpy = "^1.26.3"
+loguru = "^0.7.2"
 
 [build-system]
 requires = ["poetry-core"]
