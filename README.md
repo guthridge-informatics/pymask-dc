@@ -1,2 +1,2 @@
-# new_python_module
-Cookiecutter work-in-progress
+# pymask-dc
+Generate masks using the Mesmer application of [Deepcell-tf](https://github.com/vanvalenlab/deepcell-tf)
