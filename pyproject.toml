@@ -1,22 +1,33 @@
 [tool.poetry]
-name = {{MODULE_NAME}}
-version = {{VERSION}}
-description = {{DESCRIPTION}}
-authors = {{AUTHOR}}
-license = {{LICENSE}}
+name = "pymask_dc"
+version = "0.1.0"
+description = "Frontend for using deepcell locally"
+authors = ["Miles Smith <miles-smith@omrf.org>"]
+license = "GPL-3.0"
 readme = "README.md"
 include = [
-    { path = "tests" }
+    { path = "tests" },
+    "CHANGELOG.md"
 ]
-
-[project.urls]
-homepage = "https://github.com/{{USER}}/{{MODULE}}"
-repository = "https://github.com/{{USER}}/{{MODULE}}"
-changelog = "https://github.com/{{USER}}/{{MODULE}}/releases"
+homepage = "https://github.com/milescsmith/pymask_dc"
+repository = "https://github.com/milescsmith/pymask_dc"
 
 [tool.poetry.scripts]
-{{EXECUTABLE}} = '{{MODULE}}.main:app'
+pmdc = 'pymask_dc.__main__:app'
 
+[tool.poetry.dependencies]
+python = ">=3.10,<3.11"
+deepcell = "^0.12.9"
+scikit-image = "^0.22.0"
+numpy = "<1.24"
+pillow = "^10.2.0"
+typer = "^0.9.0"
+loguru = "^0.7.2"
+rich = "^13.7.1"
+tomli = "^2.0.1"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.3.3"
 
 [build-system]
 requires = ["poetry-core"]

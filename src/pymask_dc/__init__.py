@@ -1,9 +1,9 @@
 """
-.. module:: {{module}}
+.. module:: pymask_dc
    :platform: Unix, Windows
-   :synopsis: {{description}}
+   :synopsis: Commandline interface for generating masks using Deepcell Mesmer
 
-.. moduleauthor:: {{author}} <{{email}}>
+.. moduleauthor:: Miles Smith <miles-smith@omrf.org>
 """
 
 from importlib.metadata import PackageNotFoundError, version
@@ -13,31 +13,28 @@ import typer
 from loguru import logger
 from rich import print as rprint
 
-
 try:
     __version__ = version(__name__)
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 
 
-logger.disable(f"{{module}}")
+logger.disable("pymask_dc")
 
-
+verbosity_level = 0
 
 app = typer.Typer(
-    name="{{module}}",
-    help="{{description}}",
+    name="pymask_dc",
+    help="Commandline interface for generating masks using Deepcell Mesmer",
     add_completion=False,
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
 
-verbosity_level = 0
-
-def version_callback(value: bool) -> None:  # noqa FBT001
+def version_callback(value: bool) -> None:  # FBT001
     """Prints the version of the package."""
     if value:
-        rprint(f"[yellow]boardgamegeek[/] version: [bold blue]{__version__}[/]")
+        rprint(f"[yellow]pymask_dc[/] version: [bold blue]{__version__}[/]")
         raise typer.Exit()
 
 
