@@ -5,7 +5,7 @@ from loguru import logger
 
 
 def init_logger(verbose: int, save_log: bool = True, msg_format: str | None = None) -> None:
-    logger.enable("{{MODULE}}")
+    logger.enable("pymask_dc")
     timezone = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 
     try:
@@ -33,17 +33,17 @@ def init_logger(verbose: int, save_log: bool = True, msg_format: str | None = No
 
     config = {
         "handlers": [
-            {"sink": stderr, "format": msg_format, "level": log_level, "filter": "{{MODULE}}"},
+            {"sink": stderr, "format": msg_format, "level": log_level, "filter": "pymask_dc"},
         ]
     }
 
     if save_log:
         config["handlers"].append(
             {
-                "sink": f"pyalra_{datetime.datetime.now(tz=timezone).strftime('%Y-%d-%m--%H-%M-%S')}.log",
+                "sink": f"pymask_dc_{datetime.datetime.now(tz=timezone).strftime('%Y-%d-%m--%H-%M-%S')}.log",
                 "level": "DEBUG",
                 "format": "{time:YYYY-MM-DD at HH:mm:ss} | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan>·-·<level>{message}</level>",
-                "filter": "{{MODULE}}",
+                "filter": "pymask_dc",
                 "backtrace": True,
                 "diagnose": True,
             }
