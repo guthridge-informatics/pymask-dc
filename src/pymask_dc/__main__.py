@@ -13,9 +13,10 @@ from loguru import logger
 
 # from deepcell.utils.plot_utils import create_rgb_image, make_outline_overlay
 from PIL import Image
+from rich import print as rprint
 
 # from skimage.io import imread
-from pymask_dc import app, verbosity_level, version, version_callback
+from pymask_dc import version
 from pymask_dc.logging import init_logger
 
 
@@ -38,12 +39,44 @@ class CompartmentType(str, Enum):
     whole_cell = "whole-cell"
     both = "both"
 
+logger.disable("pymask_dc")
+
+verbosity_level = 0
+
+app = typer.Typer(
+    name="pymask_dc",
+    help="Commandline interface for generating masks using Deepcell Mesmer",
+    add_completion=False,
+    no_args_is_help=True,
+    rich_markup_mode="rich",
+)
+
+def version_callback(value: bool) -> None:  # FBT001
+    """Prints the version of the package."""
+    if value:
+        rprint(f"[yellow]pymask_dc[/] version: [bold blue]{version}[/]")
+        raise typer.Exit()
+
+
+@app.callback()
+def verbosity(
+    verbose: Annotated[
+        int,
+        typer.Option(
+            "-v",
+            "--verbose",
+            help="Control output verbosity. Pass this argument multiple times to increase the amount of output.",
+            count=True,
+        ),
+    ] = 0
+) -> None:
+    verbosity_level = verbose  # noqa: F841
 
 @app.callback(invoke_without_command=True)
 @app.command(
-    # name="count",
+    name="generate_mask",
     no_args_is_help=True,
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+    #context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def generate_mask(
     image_file: Annotated[
@@ -52,6 +85,7 @@ def generate_mask(
     ],
     output: Annotated[
         Optional[Path], # noqa: UP007
+        list[Path],
         typer.Option("-o", "--output", help="Name to give output file. If none is given, the results will be named using the input filename, resolution, and compartment mask.")
     ] = None,
     mode: Annotated[
@@ -62,6 +96,10 @@ def generate_mask(
         CompartmentType,
         typer.Option("-c", "--compartment")
     ] = CompartmentType.both,
+    separate: Annotated[  # noqa: FBT002
+        bool,
+        typer.Option("-s", "--separate", help="If generating masks for both the nucleus and whole-cell (i.e. passing 'both' for 'compartment') should the resul be output as a combined image or separate files?")
+    ] = False,
     resolution: Annotated[
         float,
         typer.Option("-r", "--resolution", help="")
@@ -70,11 +108,11 @@ def generate_mask(
         Optional[Path],  # noqa: UP007
         typer.Option("--config", help="Path to the configuration file where your Deepcell API token is kept. Only necessary if you haven't setup the api key as per the instructions from Deepcell or you want to just keep it in the config file.")
     ] = None,
-    debug: Annotated[
+    debug: Annotated[  # noqa: FBT002
         bool,
         typer.Option("--debug")
     ] = False,
-    version: Annotated[
+    version: Annotated[  # noqa: ARG001, ARG001
         bool,
         typer.Option(
             "--version",
@@ -111,7 +149,6 @@ def generate_mask(
 
         os.environ["DEEPCELL_ACCESS_TOKEN"] = config["API"]["KEY"]
 
-    app = Mesmer()
     if image_file.exists():
         img = np.array(Image.open(image_file)).astype("float64")
     else:
@@ -125,17 +162,47 @@ def generate_mask(
             im = np.stack((img[:,:,0], img[:,:,1]), axis=-1)
 
     im = np.expand_dims(im, 0)
-    segmentation_predictions = app.predict(im, image_mpp=resolution, compartment=compartment)
+    app = Mesmer()
+    segmentation_result = app.predict(im, image_mpp=resolution, compartment=compartment)
 
     # Uncomment this out when we want to add the GUI where we can display the resulting mask.
     # rgb_images = create_rgb_image(im, channel_colors=["green", "blue"])
 
-    output = Path(f"{image_file.parent}/{image_file.stem}_{compartment}_{resolution}{image_file.stem}") if output is None else output
-
+    output = Path(f"{image_file.parent}/{image_file.stem}_{compartment}_{resolution}{image_file.suffix}") if output is None else output
+    logger.info(f"{output=}")
     match compartment:
         case (CompartmentType.nuclear | CompartmentType.whole_cell):
-            output_img = Image.fromarray(segmentation_predictions[0,...,0].astype("float64"))
+            output_img = Image.fromarray(segmentation_result[0,...,0].astype("float64"))
             output_img.convert("L").save(output)
         case CompartmentType.both:
-            output_img = Image.fromarray(segmentation_predictions[0,...].astype("float64"))
-            output_img.convert("RGB").save(output)
+            if separate:
+                if isinstance(output, Path):
+                    output_name_list = [
+                        Path(f"{output.parent}/{output.stem}_nuclear_{image_file.stem}"),
+                        Path(f"{output.parent}/{output.stem}_whole-cell_{image_file.stem}")
+                    ]
+                else:
+                    output_name_list = output
+
+                nuclear_img = Image.fromarray(segmentation_result[0,...,1].astype("float64"))
+                nuclear_img.convert("L").save(output_name_list[0])
+
+                wc_img = Image.fromarray(segmentation_result[0,...,0].astype("float64"))
+                wc_img.convert("L").save(output_name_list[1])
+            else:
+                fake_rgb = np.multiply(
+                    np.dstack(
+                        (
+                            np.zeros((*segmentation_result[0,...,0].shape,1)), #fake the red channel
+                            segmentation_result[0,...,0],
+                            segmentation_result[0,...,1],
+                        )
+                    ),
+                    255.999
+                ).astype(np.uint8)
+                output_img = Image.fromarray(fake_rgb)
+                logger.info(f"about to write a file to {output=}")
+                output_img.convert("RGB").save(output)
+
+if __name__ == "main":
+    app()
