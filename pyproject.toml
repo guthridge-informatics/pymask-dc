@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pymask_dc"
-version = "0.1.0"
+version = "0.2.0"
 description = "Frontend for using deepcell locally"
 authors = ["Miles Smith <miles-smith@omrf.org>"]
 license = "GPL-3.0"
@@ -71,6 +71,7 @@ exclude = '''
 [tool.ruff]
 target-version = "py310"
 line-length = 120
+indent-width = 4
 select = [
     "A",
     "ARG",
@@ -101,16 +102,7 @@ select = [
 ]
 ignore = [
     "B027",
-    "FBT003",
-    "S105",
-    "S106",
-    "S107",
     "C901",
-    "PLR0911",
-    "PLR0912",
-    "PLR0913",
-    "PLR0915",
-    "FBT001",
     "D100",
     "D103",
     "D205",
@@ -118,8 +110,18 @@ ignore = [
     "D415",
     "E203",
     "E501",
+    "FBT001",
+    "FBT002",
+    "FBT003",
     "N802",
     "N803",
+    "PLR0911",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "S105",
+    "S106",
+    "S107",
 ]
 unfixable = [
     "F401",
