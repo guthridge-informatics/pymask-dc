@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pymask_dc"
-version = "0.2.0"
+version = "0.3.0"
 description = "Frontend for using deepcell locally"
 authors = ["Miles Smith <miles-smith@omrf.org>"]
 license = "GPL-3.0"

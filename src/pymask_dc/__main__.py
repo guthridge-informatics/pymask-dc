@@ -123,16 +123,18 @@ def generate_mask(
     ) -> None:
 
     logger.remove()
+    logger.disable("tensorflow")
     if debug:
         logger.add(
             sys.stderr,
+            save_log=True,
             format="* <red>{elapsed}</red> - <cyan>{module}:{file}:{function}</cyan>:<green>{line}</green> - <yellow>{message}</yellow>",
             colorize=True,
         )
         init_logger(verbose=verbosity_level)
     else:
         logger.add(sys.stderr, format="* <yellow>{message}</yellow>", colorize=True)
-        init_logger(verbose=1, msg_format="<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
+        init_logger(verbose=1, save_log=False, msg_format="<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>")
 
     if "DEEPCELL_ACCESS_TOKEN" not in os.environ:
         if config_file is None:
@@ -149,6 +151,54 @@ def generate_mask(
 
         os.environ["DEEPCELL_ACCESS_TOKEN"] = config["API"]["KEY"]
 
+    im = preprocess_image(image_file, mode)
+
+    app = Mesmer()
+    segmentation_result = app.predict(im, image_mpp=resolution, compartment=compartment)
+
+    # Uncomment this out when we want to add the GUI where we can display the resulting mask.
+    # rgb_images = create_rgb_image(im, channel_colors=["green", "blue"])
+
+    output = Path(f"{image_file.parent}/{image_file.stem}_{compartment}_{resolution}{image_file.suffix}") if output is None else output
+    logger.info(f"{output=}")
+    match compartment:
+        case (CompartmentType.nuclear | CompartmentType.whole_cell):
+            output_img = Image.fromarray(segmentation_result[0,...,0].astype(np.float32))
+            logger.info(f"Writing mask to {output}")
+            output_img.save(output)
+        case CompartmentType.both:
+            if separate:
+                if isinstance(output, Path):
+                    output_name_list = [
+                        Path(f"{output.parent}/{output.stem}_nuclear_{image_file.stem}"),
+                        Path(f"{output.parent}/{output.stem}_whole-cell_{image_file.stem}")
+                    ]
+                else:
+                    output_name_list = output
+
+                nuclear_img = Image.fromarray(segmentation_result[0,...,1].astype(np.float32))
+                logger.info(f"Writing nuclear mask to {output_name_list[0]}")
+                nuclear_img.save(output_name_list[0])
+
+                wc_img = Image.fromarray(segmentation_result[0,...,0].astype(np.float32))
+                logger.info(f"Writing whole-cell mask to {output_name_list[1]}")
+                wc_img.save(output_name_list[1])
+            else:
+                fake_rgb = np.multiply(
+                    np.dstack(
+                        (
+                            np.zeros((*segmentation_result[0,...,0].shape,1)), #fake the red channel
+                            segmentation_result[0,...,0],
+                            segmentation_result[0,...,1],
+                        )
+                    ),
+                    255.999
+                ).astype(np.uint8)
+                output_img = Image.fromarray(fake_rgb)
+                logger.info(f"Writing combined masks to {output}")
+                output_img.convert("RGB").save(output)
+
+def preprocess_image(image_file, mode):
     if image_file.exists():
         img = np.array(Image.open(image_file)).astype("float64")
     else:
@@ -162,47 +212,7 @@ def generate_mask(
             im = np.stack((img[:,:,0], img[:,:,1]), axis=-1)
 
     im = np.expand_dims(im, 0)
-    app = Mesmer()
-    segmentation_result = app.predict(im, image_mpp=resolution, compartment=compartment)
-
-    # Uncomment this out when we want to add the GUI where we can display the resulting mask.
-    # rgb_images = create_rgb_image(im, channel_colors=["green", "blue"])
-
-    output = Path(f"{image_file.parent}/{image_file.stem}_{compartment}_{resolution}{image_file.suffix}") if output is None else output
-    logger.info(f"{output=}")
-    match compartment:
-        case (CompartmentType.nuclear | CompartmentType.whole_cell):
-            output_img = Image.fromarray(segmentation_result[0,...,0].astype("float64"))
-            output_img.convert("L").save(output)
-        case CompartmentType.both:
-            if separate:
-                if isinstance(output, Path):
-                    output_name_list = [
-                        Path(f"{output.parent}/{output.stem}_nuclear_{image_file.stem}"),
-                        Path(f"{output.parent}/{output.stem}_whole-cell_{image_file.stem}")
-                    ]
-                else:
-                    output_name_list = output
-
-                nuclear_img = Image.fromarray(segmentation_result[0,...,1].astype("float64"))
-                nuclear_img.convert("L").save(output_name_list[0])
-
-                wc_img = Image.fromarray(segmentation_result[0,...,0].astype("float64"))
-                wc_img.convert("L").save(output_name_list[1])
-            else:
-                fake_rgb = np.multiply(
-                    np.dstack(
-                        (
-                            np.zeros((*segmentation_result[0,...,0].shape,1)), #fake the red channel
-                            segmentation_result[0,...,0],
-                            segmentation_result[0,...,1],
-                        )
-                    ),
-                    255.999
-                ).astype(np.uint8)
-                output_img = Image.fromarray(fake_rgb)
-                logger.info(f"about to write a file to {output=}")
-                output_img.convert("RGB").save(output)
+    return im
 
 if __name__ == "main":
     app()
