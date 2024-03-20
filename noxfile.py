@@ -1,7 +1,7 @@
 import nox
 from nox_poetry import session
 
-package = "boardgamegeek"
+package = "pymask_dc"
 # nox.options.sessions = ["lint", "black", "tests"]
 nox.options.sessions = ["tests"]
 locations = "src", "tests", "noxfile.py", "docs/conf.py"
